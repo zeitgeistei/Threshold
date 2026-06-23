@@ -1973,7 +1973,20 @@ function StartProcess(Name) {
 
 StartProcess("FemboyBoot");
 
-console.log(Processes)
+console.log(Processes);
+
+function StopProcess(Name) {
+    for (var i = 0; i < Processes.length; i++) {
+        if (Processes[i][0] === Name) {
+            Processes.splice(i, 1);
+            break;
+        }
+    }
+}
+
+StopProcess("FemboyBoot");
+
+console.log(Processes);
 
 });
 /******/ })()
