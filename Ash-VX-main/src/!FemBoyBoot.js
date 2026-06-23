@@ -1,10 +1,10 @@
 var SystemVersion = 0x80000001;
 var SystemSubver = 0x0000;
 var BuildVersion = "0.1.0";
-var BuildNumber = 10;
-var BuildTimestamp = 1782181764251;
-var BuildExpiration = 1782268164251;
-var BuildExpirationDays = 1;
+var BuildNumber = 52;
+var BuildTimestamp = 1782242794122;
+var BuildExpiration = 1798485994122;
+var BuildExpirationDays = 188;
 
 function __AshBuildExpirationCheck() {
   if (Date.now() > BuildExpiration) {
@@ -91,5 +91,3 @@ function StopProcess(Name) {
 
 
 StopProcess("FemboyBoot");
-
-// house
