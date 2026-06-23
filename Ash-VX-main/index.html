@@ -1,0 +1,111 @@
+<!doctype html>
+<!-- DO NOT MODIFY, USE BUILD PLUGINS!!!!! -->
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <title>My Ash Project</title>
+        <link rel="stylesheet" href="styles.css" />
+        <style>
+            #bema-wrapper {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+
+                /* wrapper will scale with viewport */
+                width: min(90vw, 90vh * var(--bema-aspect));
+                height: auto;
+                aspect-ratio: var(--bema-aspect);
+
+                transform: translate(-50%, -50%);
+                border: 16px solid #6c7086;
+                border-radius: 10px;
+                box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+                background-color: black;
+                overflow: hidden;
+            }
+
+            #bema-container {
+                width: 100%; /* scale container to fit wrapper */
+                height: 100%;
+                transform-origin: top left;
+                border: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div id="app"></div>
+
+        <div id="bema-wrapper" class="bema-fade-in">
+            <div id="bema-container" class="screen"></div>
+        </div>
+
+        <script>
+            function scaleBema() {
+                const wrapper = document.getElementById("bema-wrapper");
+                const container = document.getElementById("bema-container");
+
+                // Dimensions for each platform
+                const dimensions = {
+                    corg: { width: 319, height: 449 }, // -1 to remove wierd border,,,
+                    phone: { width: 750, height: 1334 },
+                    desktop: { width: 820, height: 630 },
+                };
+
+                // Set the current platform: "corg", "desktop", or "phone" (any case)
+                const currentPlatform = (window.currentPlatform ?? "phone").toLowerCase();
+
+                const { width: containerWidth, height: containerHeight } = dimensions[currentPlatform];
+
+                // Set aspect ratio CSS variable for wrapper
+                wrapper.style.setProperty("--bema-aspect", containerWidth / containerHeight);
+
+                // Wrapper's computed width/height
+                const wrapperWidth = wrapper.clientWidth;
+                const wrapperHeight = wrapper.clientHeight;
+
+                // Calculate scale to fit container inside wrapper
+                const scaleX = wrapperWidth / containerWidth;
+                const scaleY = wrapperHeight / containerHeight;
+                const scale = Math.min(scaleX, scaleY);
+
+                const fixedScale = Math.floor(scale * 1000) / 1000;
+                container.style.width = `${containerWidth}px`;
+                container.style.height = `${containerHeight}px`;
+                container.style.transform = `scale(${fixedScale})`;
+            }
+
+            window.addEventListener("load", scaleBema);
+            window.addEventListener("resize", scaleBema);
+        </script>
+    </body>
+    <!-- Proxy detection + automatic script/style injection -->
+    <script>
+        (async function() {
+            const isProxy = window.is_nyanet_proxy;
+            const proxyBase = window.nyanet_proxy_url || '';
+            const originBase = window.nyanet_origin || '';
+
+            function proxify(path) {
+                if (!isProxy) return path;
+                return proxyBase + originBase + path;
+            }
+
+            // Inject CSS
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = proxify('styles.css');
+            document.head.appendChild(link);
+
+        })();
+    </script>
+
+
+    <script>
+        (function() {
+            const url = window.is_nyanet_proxy
+            ? (window.nyanet_proxy_url || '') + (window.nyanet_origin || '') + 'dist/combined.bundle.js'
+            : 'dist/combined.bundle.js';
+            document.write('<script src="' + url.replace(/"/g, '&quot;') + '"><\/script>');
+        })();
+    </script>
+</html>
