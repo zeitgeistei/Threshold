@@ -1,5 +1,17 @@
-var SystemVersion = 0x80000001; 
+var SystemVersion = 0x80000001;
 var SystemSubver = 0x0000;
+var BuildVersion = "0.1.0";
+var BuildNumber = 10;
+var BuildTimestamp = 1782181764251;
+var BuildExpiration = 1782268164251;
+var BuildExpirationDays = 1;
+
+function __AshBuildExpirationCheck() {
+  if (Date.now() > BuildExpiration) {
+    throw new Error("Build expired.");
+  }
+}
+__AshBuildExpirationCheck();
 
 if (SystemVersion > 2147483647) {
     var VersionClass = "Developer";
@@ -49,6 +61,10 @@ Codenames = null;
 
 var Processes = [];
 
+// Starts a process by name.
+//
+// Example use: StartProcess("Notepad");
+//
 function StartProcess(Name) {
     appendItem(Processes, [
         Name,
@@ -56,10 +72,13 @@ function StartProcess(Name) {
     ]);
 }
 
-StartProcess("FemboyBoot");
 
 console.log(Processes);
 
+// Stops a process by name. If the process is not found, nothing happens.
+//
+// Example use: StopProcess("Notepad");
+//
 function StopProcess(Name) {
     for (var i = 0; i < Processes.length; i++) {
         if (Processes[i][0] === Name) {
@@ -69,6 +88,8 @@ function StopProcess(Name) {
     }
 }
 
+
+
 StopProcess("FemboyBoot");
 
-console.log(Processes);
+// house
