@@ -1915,9 +1915,9 @@ var activeBundles = {};
 var SystemVersion = 0x80000001;
 var SystemSubver = 0x0000;
 var BuildVersion = "0.1.0";
-var BuildNumber = 52;
-var BuildTimestamp = 1782242794122;
-var BuildExpiration = 1798485994122;
+var BuildNumber = 61;
+var BuildTimestamp = 1782264832236;
+var BuildExpiration = 1798508032236;
 var BuildExpirationDays = 188;
 
 function __AshBuildExpirationCheck() {
@@ -2052,6 +2052,23 @@ function createArkWindow(Name, Process, Info) {
         return Math.max(min, Math.min(max, value));
     }
 
+    function clampAspect(width, height) {
+        const minRatio = 0.1; // 1:10
+        const maxRatio = 10;  // 10:1
+        const ratio = width / height;
+        if (ratio > maxRatio) {
+            width = height * maxRatio;
+        } else if (ratio < minRatio) {
+            height = width / minRatio;
+        }
+        return { width, height };
+    }
+
+    function capFontSize(size, elementWidth, minSize = 10) {
+        const maxSize = Math.round(elementWidth * 0.8);
+        return Math.max(minSize, Math.min(size, maxSize));
+    }
+
     function getContainerScale() {
         const container = document.getElementById('bema-container');
         if (!container) return { scaleX: 1, scaleY: 1 };
@@ -2073,6 +2090,7 @@ function createArkWindow(Name, Process, Info) {
     function layoutWindow() {
         state.width = Math.max(state.width, minWidth);
         state.height = Math.max(state.height, minHeight);
+        ({ width: state.width, height: state.height } = clampAspect(state.width, state.height));
 
         const contentHeight = state.height - titleHeight;
 
@@ -2084,26 +2102,26 @@ function createArkWindow(Name, Process, Info) {
         setProperty(titleId, 'left', px(state.x));
         setProperty(titleId, 'top', px(state.y));
         setProperty(titleId, 'width', px(state.width));
-        setProperty(titleId, 'height', px(titleHeight));
-        setProperty(titleId, 'font-size', px(Math.max(12, Math.round(state.width * 0.035))));
+        //setProperty(titleId, 'height', px(titleHeight));
+        //setProperty(titleId, 'font-size', px(capFontSize(Math.round(state.width * 0.04), state.width, 14)));
 
         setProperty(contentId, 'left', px(state.x));
         setProperty(contentId, 'top', px(state.y + titleHeight));
         setProperty(contentId, 'width', px(state.width));
         setProperty(contentId, 'height', px(contentHeight));
-        setProperty(contentId, 'font-size', px(Math.max(12, Math.round(state.width * 0.03))));
+        setProperty(contentId, 'font-size', px(capFontSize(Math.round(state.width * 0.03), state.width, 12)));
 
         setProperty(closeId, 'left', px(state.x + state.width - 52));
         setProperty(closeId, 'top', px(state.y));
         setProperty(closeId, 'width', px(52));
         setProperty(closeId, 'height', px(titleHeight));
-        setProperty(closeId, 'font-size', px(Math.max(14, Math.round(state.width * 0.035))));
+        //setProperty(closeId, 'font-size', px(capFontSize(Math.round(state.width * 0.035), 52, 14)));
 
         setProperty(maxId, 'left', px(state.x + state.width - 104));
         setProperty(maxId, 'top', px(state.y));
         setProperty(maxId, 'width', px(52));
         setProperty(maxId, 'height', px(titleHeight));
-        setProperty(maxId, 'font-size', px(Math.max(14, Math.round(state.width * 0.035))));
+        //setProperty(maxId, 'font-size', px(capFontSize(Math.round(state.width * 0.035), 52, 14)));
 
         setProperty(resizeId, 'left', px(state.x + state.width - 28));
         setProperty(resizeId, 'top', px(state.y + state.height - 28));
@@ -2113,9 +2131,10 @@ function createArkWindow(Name, Process, Info) {
         state.buttons.forEach(button => {
             const x = state.x + Math.round(state.width * clamp(button.x, 0, 1));
             const y = state.y + Math.round(state.height * clamp(button.y, 0, 1));
-            const width = Math.round(state.width * clamp(button.width, 0, 1));
-            const height = Math.round(state.height * clamp(button.height, 0, 1));
-            const fontSize = Math.max(10, Math.round(state.width * (button.fontSize || 0.04)));
+            let width = Math.round(state.width * clamp(button.width, 0, 1));
+            let height = Math.round(state.height * clamp(button.height, 0, 1));
+            ({ width, height } = clampAspect(width, height));
+            const fontSize = capFontSize(Math.round(width * (button.fontSize || 0.04)), width, 10);
 
             setProperty(button.id, 'left', px(x));
             setProperty(button.id, 'top', px(y));
@@ -2127,14 +2146,17 @@ function createArkWindow(Name, Process, Info) {
 
     function createWindowChildButton(config) {
         const id = `${windowId}-child-${config.name || Math.random().toString(36).slice(2, 8)}`;
+        const initialWidth = Math.round(state.width * (config.width || 0.2));
+        const initialHeight = Math.round(state.height * (config.height || 0.08));
+        const sized = clampAspect(initialWidth, initialHeight);
         AEA({
             type: 'Button',
             id,
             position: { x: state.x + Math.round(state.width * (config.x || 0)), y: state.y + Math.round(state.height * (config.y || 0)) },
-            size: { width: Math.round(state.width * (config.width || 0.2)), height: Math.round(state.height * (config.height || 0.08)) },
+            size: { width: sized.width, height: sized.height },
             border: { width: 1, color: config.borderColor || '#888', radius: config.borderRadius || 8 },
             colors: { bg: config.bg || '#333', text: config.textColor || '#fff' },
-            text: { content: config.label || '', align: 'center', size: Math.max(12, Math.round(state.width * (config.fontSize || 0.04))), font: config.font || 'sans-serif' },
+            text: { content: config.label || '', align: 'center', size: capFontSize(Math.max(12, Math.round(state.width * (config.fontSize || 0.04))), sized.width, 12), font: config.font || 'sans-serif' },
             css: { position: 'absolute', cursor: 'pointer' },
         });
 
@@ -2332,22 +2354,14 @@ function createArkWindow(Name, Process, Info) {
     state.createChildButton = createWindowChildButton;
     return state;
 }
+function notepad() {
+    StartProcess("Notepad");
+const myWindow = createArkWindow("Notepad", "Notepad", { width: 250, height: 250, x: 50, y: 50, title: "My Window" });
 
-const myWindow = createArkWindow("MyWindow", "MyProcess", { width: 250, height: 250, x: 50, y: 50, title: "My Window" });
 
-const childButton = myWindow.createChildButton({
-    name: 'test',
-    label: 'Press',
-    x: 0.1,
-    y: 0.15,
-    width: 0.25,
-    height: 0.12,
-    fontSize: 0.045,
-    onClick: () => {
-        console.log('child button pressed');
-    },
-});
+}
 
+notepad();
 
 /* === src: src\virtualfs.js === */
 // Virtual file system for Threshold
