@@ -1916,9 +1916,9 @@ var activeBundles = {};
 var SystemVersion = 0x80000001;
 var SystemSubver = 0x0000;
 var BuildVersion = "0.1.0";
-var BuildNumber = 61;
-var BuildTimestamp = 1782264832236;
-var BuildExpiration = 1798508032236;
+var BuildNumber = 77;
+var BuildTimestamp = 1782270079238;
+var BuildExpiration = 1798513279238;
 var BuildExpirationDays = 188;
 
 function __AshBuildExpirationCheck() {
@@ -2032,13 +2032,20 @@ function createArkWindow(Name, Process, Info) {
     const closeId = `${windowId}-close`;
     const maxId = `${windowId}-max`;
     const resizeId = `${windowId}-resize`;
+    const overlayId = `${windowId}-overlay`;
 
     const minWidth = 200;
     const minHeight = 240;    const titleHeight = 32;
-    const state = {
+    var state = {
         id: windowId,
         x: Info.x,
         y: Info.y,
+        contentId: contentId,
+        titleId: titleId,
+        frameId: frameId,
+        closeId: closeId,
+        maxId: maxId,
+        overlayId: overlayId,
         width: Math.max(Info.width, minWidth),
         height: Math.max(Info.height, minHeight),
         title: Info.title,
@@ -2129,6 +2136,15 @@ function createArkWindow(Name, Process, Info) {
         setProperty(resizeId, 'width', px(24));
         setProperty(resizeId, 'height', px(24));
 
+        // overlay covers the whole window (including title) and stays readOnly
+        setProperty(overlayId, 'left', px(state.x));
+        setProperty(overlayId, 'top', px(state.y));
+        setProperty(overlayId, 'width', px(state.width));
+        setProperty(overlayId, 'height', px(state.height));
+        setProperty(overlayId, 'font-size', px(capFontSize(Math.round(state.width * 0.03), state.width, 12)));
+        const overlayEl = document.getElementById(overlayId);
+        if (overlayEl) overlayEl.readOnly = true;
+
         state.buttons.forEach(button => {
             const x = state.x + Math.round(state.width * clamp(button.x, 0, 1));
             const y = state.y + Math.round(state.height * clamp(button.y, 0, 1));
@@ -2210,9 +2226,22 @@ function createArkWindow(Name, Process, Info) {
         size: { width: state.width, height: state.height - titleHeight },
         border: { width: 0, color: 'transparent', radius: 0 },
         colors: { bg: '#000', text: '#fff' },
-        text: { content: 'This is the content area.', align: 'left', size: Math.max(12, Math.round(state.width * 0.03)), font: 'Arial' },
+        text: { content: '', align: 'left', size: Math.max(12, Math.round(state.width * 0.03)), font: 'Arial' },
         readOnly: true,
         css: { position: 'absolute', padding: '12px', boxSizing: 'border-box', overflow: 'auto' },
+    });
+
+    // transparent overlay that covers the full window with white text
+    AEA({
+        type: 'TextArea',
+        id: overlayId,
+        position: { x: state.x, y: state.y },
+        size: { width: state.width, height: state.height },
+        border: { width: 0, color: 'transparent', radius: 0 },
+        colors: { bg: 'transparent', text: '#fff' },
+        text: { content: '', align: 'left', size: Math.max(12, Math.round(state.width * 0.03)), font: 'Arial' },
+        readOnly: true,
+        css: { position: 'absolute', padding: '12px', boxSizing: 'border-box', overflow: 'auto', background: 'transparent', color: '#fff', zIndex: 9999 },
     });
 
     AEA({
@@ -2351,14 +2380,23 @@ function createArkWindow(Name, Process, Info) {
     }
 
     layoutWindow();
-
+    state.contentId = contentId;
+    state.titleId = titleId;
+    state.frameId = frameId;
+    state.closeId = closeId;
+    state.maxId = maxId;
     state.createChildButton = createWindowChildButton;
     return state;
 }
 function notepad() {
     StartProcess("Notepad");
 const myWindow = createArkWindow("Notepad", "Notepad", { width: 250, height: 250, x: 50, y: 50, title: "My Window" });
-
+const contentElement = document.getElementById(myWindow.contentId);
+if (contentElement) {
+    contentElement.removeAttribute("readonly")
+    contentElement.readOnly = false;  // or false
+    contentElement.value = "Hello, World!";  // or false
+}   
 
 }
 

@@ -1916,9 +1916,9 @@ var activeBundles = {};
 var SystemVersion = 0x80000001;
 var SystemSubver = 0x0000;
 var BuildVersion = "0.1.0";
-var BuildNumber = 61;
-var BuildTimestamp = 1782264832236;
-var BuildExpiration = 1798508032236;
+var BuildNumber = 65;
+var BuildTimestamp = 1782266100607;
+var BuildExpiration = 1798509300607;
 var BuildExpirationDays = 188;
 
 function __AshBuildExpirationCheck() {
@@ -2035,7 +2035,7 @@ function createArkWindow(Name, Process, Info) {
 
     const minWidth = 200;
     const minHeight = 240;    const titleHeight = 32;
-    const state = {
+    var state = {
         id: windowId,
         x: Info.x,
         y: Info.y,
@@ -2210,7 +2210,7 @@ function createArkWindow(Name, Process, Info) {
         size: { width: state.width, height: state.height - titleHeight },
         border: { width: 0, color: 'transparent', radius: 0 },
         colors: { bg: '#000', text: '#fff' },
-        text: { content: 'This is the content area.', align: 'left', size: Math.max(12, Math.round(state.width * 0.03)), font: 'Arial' },
+        text: { content: '', align: 'left', size: Math.max(12, Math.round(state.width * 0.03)), font: 'Arial' },
         readOnly: true,
         css: { position: 'absolute', padding: '12px', boxSizing: 'border-box', overflow: 'auto' },
     });
@@ -2351,14 +2351,19 @@ function createArkWindow(Name, Process, Info) {
     }
 
     layoutWindow();
-
+    state.contentId = contentId;
+    state.titleId = titleId;
+    state.frameId = frameId;
+    state.closeId = closeId;
+    state.maxId = maxId;
     state.createChildButton = createWindowChildButton;
     return state;
 }
 function notepad() {
     StartProcess("Notepad");
 const myWindow = createArkWindow("Notepad", "Notepad", { width: 250, height: 250, x: 50, y: 50, title: "My Window" });
-
+setProperty(myWindow.contentId, 'readonly', false);
+setProperty(myWindow.contentId, 'value', 'Hello world!');
 
 }
 
