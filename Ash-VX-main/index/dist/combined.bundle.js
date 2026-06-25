@@ -1916,9 +1916,9 @@ var activeBundles = {};
 var SystemVersion = 0x80000001;
 var SystemSubver = 0x0000;
 var BuildVersion = "0.1.0";
-var BuildNumber = 65;
-var BuildTimestamp = 1782266100607;
-var BuildExpiration = 1798509300607;
+var BuildNumber = 89;
+var BuildTimestamp = 1782418896069;
+var BuildExpiration = 1798662096069;
 var BuildExpirationDays = 188;
 
 function __AshBuildExpirationCheck() {
@@ -2032,6 +2032,7 @@ function createArkWindow(Name, Process, Info) {
     const closeId = `${windowId}-close`;
     const maxId = `${windowId}-max`;
     const resizeId = `${windowId}-resize`;
+    const overlayId = `${windowId}-overlay`;
 
     const minWidth = 200;
     const minHeight = 240;    const titleHeight = 32;
@@ -2039,6 +2040,12 @@ function createArkWindow(Name, Process, Info) {
         id: windowId,
         x: Info.x,
         y: Info.y,
+        contentId: contentId,
+        titleId: titleId,
+        frameId: frameId,
+        closeId: closeId,
+        maxId: maxId,
+        overlayId: overlayId,
         width: Math.max(Info.width, minWidth),
         height: Math.max(Info.height, minHeight),
         title: Info.title,
@@ -2129,6 +2136,15 @@ function createArkWindow(Name, Process, Info) {
         setProperty(resizeId, 'width', px(24));
         setProperty(resizeId, 'height', px(24));
 
+        // overlay covers the whole window (including title) and stays readOnly
+        setProperty(overlayId, 'left', px(state.x));
+        setProperty(overlayId, 'top', px(state.y));
+        setProperty(overlayId, 'width', px(state.width));
+        setProperty(overlayId, 'height', px(state.height));
+        setProperty(overlayId, 'font-size', px(capFontSize(Math.round(state.width * 0.03), state.width, 12)));
+        const overlayEl = document.getElementById(overlayId);
+        if (overlayEl) overlayEl.readOnly = true;
+
         state.buttons.forEach(button => {
             const x = state.x + Math.round(state.width * clamp(button.x, 0, 1));
             const y = state.y + Math.round(state.height * clamp(button.y, 0, 1));
@@ -2213,6 +2229,19 @@ function createArkWindow(Name, Process, Info) {
         text: { content: '', align: 'left', size: Math.max(12, Math.round(state.width * 0.03)), font: 'Arial' },
         readOnly: true,
         css: { position: 'absolute', padding: '12px', boxSizing: 'border-box', overflow: 'auto' },
+    });
+
+    // transparent overlay that covers the full window with white text
+    AEA({
+        type: 'TextArea',
+        id: overlayId,
+        position: { x: state.x, y: state.y },
+        size: { width: state.width, height: state.height },
+        border: { width: 0, color: 'transparent', radius: 0 },
+        colors: { bg: 'transparent', text: '#fff' },
+        text: { content: '', align: 'left', size: Math.max(12, Math.round(state.width * 0.03)), font: 'Arial' },
+        readOnly: true,
+        css: { position: 'absolute', padding: '12px', boxSizing: 'border-box', overflow: 'auto', background: 'transparent', color: '#fff', zIndex: 9999 },
     });
 
     AEA({
@@ -2362,12 +2391,508 @@ function createArkWindow(Name, Process, Info) {
 function notepad() {
     StartProcess("Notepad");
 const myWindow = createArkWindow("Notepad", "Notepad", { width: 250, height: 250, x: 50, y: 50, title: "My Window" });
-setProperty(myWindow.contentId, 'readonly', false);
-setProperty(myWindow.contentId, 'value', 'Hello world!');
+const contentElement = document.getElementById(myWindow.contentId);
+if (contentElement) {
+    contentElement.removeAttribute("readonly")
+    contentElement.readOnly = false;  // or false
+    contentElement.value = "Hello, World!";  // or false
+}   
 
 }
 
 notepad();
+
+/* === src: src\Deprecated\!ScreenReader.js === */
+/*(function() {
+    const STORAGE_KEY = "AshScreenReaderSettings";
+
+    window.ScreenReaderLangs = window.ScreenReaderLangs || [];
+    const defaultLang = {
+        code: 'en',
+        name: 'English',
+        voice: 'en-US',
+        strings: {
+            on: 'Screen reader mode enabled.',
+            off: 'Screen reader mode disabled.',
+            language: 'Language set to {name}.',
+            hover: '{target}',
+            noTarget: 'Nothing under the pointer.',
+            cycle: 'Switched language to {name}.',
+        },
+    };
+
+    function loadSettings() {
+        try {
+            const raw = window.localStorage.getItem(STORAGE_KEY);
+            if (!raw) return { enabled: false, language: 'en' };
+            return JSON.parse(raw);
+        } catch (error) {
+            return { enabled: false, language: 'en' };
+        }
+    }
+
+    function saveSettings(state) {
+        try {
+            window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                enabled: state.enabled,
+                language: state.language,
+            }));
+        } catch (error) {
+            // ignore storage failures
+        }
+    }
+
+    function getLangPack(code) {
+        const pack = window.ScreenReaderLangs.find(lang => lang.code === code);
+        if (pack) return pack;
+        return defaultLang;
+    }
+
+    function formatString(template, values) {
+        return template.replace(/\{(\w+)\}/g, (match, key) => {
+            return values && values[key] != null ? values[key] : match;
+        });
+    }
+
+    function findDeepestVisibleElement(event) {
+        if (typeof document.elementFromPoint !== 'function') return event.target;
+        const x = event.clientX;
+        const y = event.clientY;
+        const original = event.target;
+        if (!original || original === document.body || original === document.documentElement) {
+            return original;
+        }
+
+        const computedStyle = window.getComputedStyle(original);
+        if (computedStyle && computedStyle.pointerEvents !== 'none') {
+            try {
+                const oldPointer = original.style.pointerEvents;
+                original.style.pointerEvents = 'none';
+                const fromPoint = document.elementFromPoint(x, y);
+                original.style.pointerEvents = oldPointer;
+                if (fromPoint && fromPoint !== original) {
+                    return fromPoint;
+                }
+            } catch (error) {
+                // ignore DOM access issues
+            }
+        }
+        return original;
+    }
+
+    function getTextForElement(element) {
+        if (!element || element === document.body || element === document.documentElement) {
+            return null;
+        }
+
+        const ariaLabel = element.getAttribute && element.getAttribute('aria-label');
+        if (ariaLabel) return ariaLabel.trim();
+
+        const ariaLabelledBy = element.getAttribute && element.getAttribute('aria-labelledby');
+        if (ariaLabelledBy) {
+            const labelElement = document.getElementById(ariaLabelledBy);
+            if (labelElement && labelElement.textContent) {
+                return labelElement.textContent.trim();
+            }
+        }
+
+        if (element.title) return element.title.trim();
+        if (element.alt) return element.alt.trim();
+        if (element.placeholder) return element.placeholder.trim();
+        if (element.value) return element.value.toString().trim();
+
+        const visibleText = element.innerText || element.textContent;
+        if (visibleText) {
+            const trimmed = visibleText.toString().trim();
+            if (trimmed) {
+                const short = trimmed.replace(/\s+/g, ' ').slice(0, 120);
+                return short;
+            }
+        }
+
+        const tag = element.tagName ? element.tagName.toLowerCase() : 'element';
+        return tag;
+    }
+
+    function speak(text) {
+        if (!text) return;
+        const pack = getLangPack(state.language);
+        if (window.speechSynthesis && typeof window.SpeechSynthesisUtterance === 'function') {
+            try {
+                const utterance = new window.SpeechSynthesisUtterance(text);
+                utterance.lang = pack.voice || pack.code || 'en-US';
+                window.speechSynthesis.cancel();
+                window.speechSynthesis.speak(utterance);
+                return;
+            } catch (error) {
+                // fallback to console
+            }
+        }
+        console.log('[ScreenReader]', text);
+    }
+
+    function announce(message) {
+        console.log('[ScreenReader]', message);
+        if (!state.enabled) return;
+        if (!message) return;
+        const pack = getLangPack(state.language);
+        speak(message);
+    }
+
+    function updateGlobalState() {
+        window.ScreenReaderEnabled = state.enabled;
+        window.ScreenReaderLanguage = state.language;
+        window.ScreenReaderAvailableLanguages = window.ScreenReaderLangs.map(lang => lang.code);
+    }
+
+    function getCurrentStrings() {
+        const pack = getLangPack(state.language);
+        return (pack && pack.strings) ? pack.strings : defaultLang.strings;
+    }
+
+    function toggleScreenReaderMode() {
+        state.enabled = !state.enabled;
+        state.lastHoverTarget = null;
+        saveSettings(state);
+        updateGlobalState();
+        refreshOverlay();
+        const message = state.enabled ? getCurrentStrings().on : getCurrentStrings().off;
+        announce(message);
+    }
+
+    function cycleLanguage() {
+        const codes = window.ScreenReaderLangs.map(lang => lang.code);
+        if (codes.length === 0) {
+            announce(defaultLang.strings.language.replace('{name}', defaultLang.name));
+            return;
+        }
+
+        const currentIndex = codes.indexOf(state.language);
+        const nextIndex = (currentIndex + 1) % codes.length;
+        state.language = codes[nextIndex] || defaultLang.code;
+        saveSettings(state);
+        updateGlobalState();
+        refreshOverlay();
+        const pack = getLangPack(state.language);
+        announce(formatString(getCurrentStrings().cycle || getCurrentStrings().language, { name: pack.name }));
+    }
+
+    function onPointerMove(event) {
+        if (!state.enabled) return;
+        const target = findDeepestVisibleElement(event) || event.target;
+        if (!target || target === state.lastHoverTarget) return;
+        state.lastHoverTarget = target;
+
+        const name = getTextForElement(target);
+        if (!name) {
+            announce(getCurrentStrings().noTarget);
+            return;
+        }
+
+        const message = formatString(getCurrentStrings().hover, { target: name });
+        announce(message);
+    }
+
+    function onKeyDown(event) {
+        if (!event.ctrlKey || !event.shiftKey || event.altKey) return;
+
+        if (event.code === 'Digit8' || event.code === 'Numpad8') {
+            event.preventDefault();
+            toggleScreenReaderMode();
+            return;
+        }
+
+        if (event.code === 'Digit7' || event.code === 'Numpad7') {
+            event.preventDefault();
+            cycleLanguage();
+            return;
+        }
+    }
+
+    function createStatusOverlay() {
+        const overlayId = 'ash-screenreader-status';
+        if (document.getElementById(overlayId)) return;
+
+        const overlay = document.createElement('div');
+        overlay.id = overlayId;
+        overlay.style.position = 'fixed';
+        overlay.style.left = '16px';
+        overlay.style.bottom = '16px';
+        overlay.style.padding = '8px 12px';
+        overlay.style.background = 'rgba(0, 0, 0, 0.7)';
+        overlay.style.color = '#fff';
+        overlay.style.fontSize = '13px';
+        overlay.style.borderRadius = '8px';
+        overlay.style.zIndex = 999999;
+        overlay.style.pointerEvents = 'none';
+        overlay.style.fontFamily = 'Arial, sans-serif';
+        overlay.style.maxWidth = '320px';
+        overlay.style.whiteSpace = 'pre-wrap';
+        overlay.style.lineHeight = '1.3';
+        document.body.appendChild(overlay);
+    }
+
+    function refreshOverlay() {
+        let overlay = document.getElementById('ash-screenreader-status');
+        if (!overlay) {
+            createStatusOverlay();
+            overlay = document.getElementById('ash-screenreader-status');
+        }
+        const pack = getLangPack(state.language);
+        overlay.textContent = `Screen reader: ${state.enabled ? 'ON' : 'OFF'}\nLanguage: ${pack.name}\nHotkeys: Ctrl+Shift+8 toggle, Ctrl+Shift+7 cycle`;
+    }
+
+    function initialize() {
+        const loadedState = loadSettings();
+        state.enabled = loadedState.enabled || false;
+        state.language = loadedState.language || 'en';
+        updateGlobalState();
+        refreshOverlay();
+
+        document.addEventListener('keydown', onKeyDown, true);
+        document.addEventListener('pointermove', onPointerMove, true);
+        document.addEventListener('mouseover', onPointerMove, true);
+
+        window.addEventListener('beforeunload', () => saveSettings(state));
+    }
+
+    const state = {
+        enabled: false,
+        language: 'en',
+        lastHoverTarget: null,
+    };
+
+    window.ScreenReader = {
+        get enabled() { return state.enabled; },
+        get language() { return state.language; },
+        toggle: toggleScreenReaderMode,
+        cycleLanguage,
+        get availableLanguages() { return window.ScreenReaderLangs.map(lang => lang.code); },
+        announce,
+    };
+
+    initialize();
+})();
+*/
+
+/* === src: src\Deprecated\screenreader-en.js === */
+(function() {
+    window.ScreenReaderLangs = window.ScreenReaderLangs || [];
+    window.ScreenReaderLangs.push({
+        code: 'en',
+        name: 'English',
+        voice: 'en-US',
+        strings: {
+            on: 'Screen reader mode enabled.',
+            off: 'Screen reader mode disabled.',
+            language: 'Language set to {name}.',
+            hover: '{target}.',
+            noTarget: 'Nothing under the pointer.',
+            cycle: 'Switched language to {name}.',
+        },
+    });
+})();
+
+
+/* === src: src\Deprecated\screenreader-es.js === */
+(function() {
+    window.ScreenReaderLangs = window.ScreenReaderLangs || [];
+    window.ScreenReaderLangs.push({
+        code: 'es',
+        name: 'Español',
+        voice: 'es-ES',
+        strings: {
+            on: 'Modo lector activado.',
+            off: 'Modo lector desactivado.',
+            language: 'Idioma cambiado a {name}.',
+            hover: '{target}.',
+            noTarget: 'Nada bajo el cursor.',
+            cycle: 'Idioma cambiado a {name}.',
+        },
+    });
+})();
+
+
+/* === src: src\K\!Kernel.js === */
+
+
+/* === src: src\Settings.js === */
+function dunnySettings() {
+    if (typeof createArkWindow !== 'function') {
+        console.error('createArkWindow is required for dunnySettings');
+        return;
+    }
+
+    const settingsWindow = createArkWindow('DunnySettings', 'DunnySettings', {
+        width: 780,
+        height: 540,
+        x: 40,
+        y: 40,
+        title: 'Dunny Settings',
+    });
+
+    const menuItems = [
+        {
+            key: 'system',
+            label: 'System',
+            content: 'System settings control display, notifications, and power behaviour.\n\n- Display scaling and layout\n- Notifications and focus assist\n- Storage and power management',
+        },
+        {
+            key: 'display',
+            label: 'Display',
+            content: 'Display settings adjust resolution, orientation, and scaling.\n\n- Brightness and night light\n- Resolution and layout\n- Advanced scaling and multi-monitor support',
+        },
+        {
+            key: 'network',
+            label: 'Network',
+            content: 'Network settings manage Wi-Fi, ethernet, and VPN connections.\n\n- Wi-Fi and hotspot\n- Ethernet and proxy\n- VPN and diagnostics',
+        },
+        {
+            key: 'privacy',
+            label: 'Privacy',
+            content: 'Privacy settings control permissions for apps and data access.\n\n- App permissions\n- Camera and microphone access\n- Location and diagnostics',
+        },
+        {
+            key: 'accessibility',
+            label: 'Accessibility',
+            content: 'Accessibility settings help tailor the experience.\n\n- Text size and high contrast\n- Screen reader options\n- Keyboard and pointer behavior',
+        },
+        {
+            key: 'about',
+            label: 'About',
+            content: 'About Dunny Settings.\n\n- Version: 0.1.0\n- Built for scaling tests and UI layout validation\n- This app is intentionally simple and responsive',
+        },
+    ];
+
+    const contentElement = document.getElementById(settingsWindow.contentId);
+    const titleElement = document.getElementById(settingsWindow.titleId);
+
+    if (titleElement) {
+        titleElement.style.fontFamily = 'Segoe UI, sans-serif';
+        titleElement.style.fontWeight = '700';
+        titleElement.style.fontSize = '18px';
+        titleElement.style.backgroundColor = '#111827';
+        titleElement.style.color = '#f8fafc';
+        titleElement.style.padding = '8px 12px';
+    }
+
+    if (contentElement) {
+        contentElement.readOnly = true;
+        contentElement.style.whiteSpace = 'pre-wrap';
+        contentElement.style.fontFamily = 'Segoe UI, sans-serif';
+        contentElement.style.fontSize = '14px';
+        contentElement.style.lineHeight = '1.5';
+        contentElement.style.backgroundColor = '#0f172a';
+        contentElement.style.color = '#e2e8f0';
+        contentElement.style.border = '1px solid #334155';
+        contentElement.style.borderRadius = '14px';
+        contentElement.style.padding = '24px';
+        contentElement.style.boxSizing = 'border-box';
+        contentElement.style.overflow = 'auto';
+    }
+
+    const buttons = [];
+    let selectedMenu = menuItems[0].key;
+
+    function setSelected(menuKey) {
+        selectedMenu = menuKey;
+        const item = menuItems.find((entry) => entry.key === menuKey) || menuItems[0];
+        if (!item) return;
+
+        if (contentElement) {
+            contentElement.value = item.label + '\n\n' + item.content;
+        }
+
+        buttons.forEach((btn) => {
+            const el = document.getElementById(btn.id);
+            if (!el) return;
+            if (btn.key === menuKey) {
+                el.style.backgroundColor = '#4f46e5';
+                el.style.color = '#f8fafc';
+                el.style.borderColor = '#6366f1';
+            } else {
+                el.style.backgroundColor = '#1f2937';
+                el.style.color = '#cbd5e1';
+                el.style.borderColor = '#334155';
+            }
+        });
+    }
+
+    function addMenuButton(item, index) {
+        const buttonId = settingsWindow.createChildButton({
+            name: item.key,
+            x: 0.02,
+            y: 0.08 + index * 0.115,
+            width: 0.24,
+            height: 0.095,
+            fontSize: 0.034,
+            borderRadius: 12,
+            borderColor: '#334155',
+            bg: '#1f2937',
+            textColor: '#cbd5e1',
+            label: item.label,
+        });
+
+        const button = document.getElementById(buttonId);
+        if (button) {
+            button.addEventListener('click', () => setSelected(item.key));
+        }
+
+        buttons.push({ id: buttonId, key: item.key });
+    }
+
+    menuItems.forEach((item, index) => addMenuButton(item, index));
+
+    function addBackgroundPanels() {
+        AEA({
+            type: 'div',
+            id: 'dunny-settings-menu-panel',
+            position: {
+                x: settingsWindow.x + Math.round(settingsWindow.width * 0.02),
+                y: settingsWindow.y + Math.round(settingsWindow.height * 0.08),
+            },
+            size: {
+                width: Math.round(settingsWindow.width * 0.27),
+                height: Math.round(settingsWindow.height * 0.86),
+            },
+            border: { width: 1, color: '#334155', radius: 18 },
+            colors: { bg: '#0f172a', text: '#ffffff' },
+            text: { content: '', align: 'left', size: 14, font: 'Segoe UI' },
+            css: {
+                position: 'absolute',
+                pointerEvents: 'none',
+                boxSizing: 'border-box',
+            },
+        });
+
+        AEA({
+            type: 'div',
+            id: 'dunny-settings-content-panel',
+            position: {
+                x: settingsWindow.x + Math.round(settingsWindow.width * 0.31),
+                y: settingsWindow.y + Math.round(settingsWindow.height * 0.08),
+            },
+            size: {
+                width: Math.round(settingsWindow.width * 0.67),
+                height: Math.round(settingsWindow.height * 0.86),
+            },
+            border: { width: 1, color: '#334155', radius: 18 },
+            colors: { bg: 'rgba(15, 23, 42, 0.96)', text: '#ffffff' },
+            text: { content: '', align: 'left', size: 14, font: 'Segoe UI' },
+            css: {
+                position: 'absolute',
+                pointerEvents: 'none',
+                boxSizing: 'border-box',
+            },
+        });
+    }
+
+    addBackgroundPanels();
+    setSelected(selectedMenu);
+}
+
+dunnySettings();
+
 
 /* === src: src\virtualfs.js === */
 // Virtual file system for Threshold
