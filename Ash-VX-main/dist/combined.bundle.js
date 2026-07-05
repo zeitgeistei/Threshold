@@ -1,6 +1,126 @@
 /******/ (() => { // webpackBootstrap
+/******/ 	var __webpack_modules__ = ([
+/* 0 */
+/***/ ((module) => {
+
 console.log("Hewwo from the sample plugin!~ \n\nto remove me delete /plugins/add-log.js \n\nUwU~");
 document.addEventListener("DOMContentLoaded", function() {
+
+/* === lib: lib\LoggingFramework.js === */
+// LoggingFramework.js
+// Provides static console logging and animated loading spinners in both ASCII and braille styles.
+
+const ASCII_FRAMES = ["-", "/", "|", "\\"];
+const BRAILLE_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
+
+const ICONS = {
+  info: "-",
+  event: "•",
+  success: "✓",
+  error: "✗",
+};
+
+function isNodeTTY() {
+  return (
+    typeof process !== "undefined" &&
+    process.stdout &&
+    typeof process.stdout.write === "function" &&
+    process.stdout.isTTY
+  );
+}
+
+function formatLog(type, message) {
+  const icon = ICONS[type] || ICONS.info;
+  return `${icon} ${message}`;
+}
+
+function logStatic(message, type = "info") {
+  const output = formatLog(type, message);
+  if (type === "error") {
+    console.error(output);
+  } else {
+    console.log(output);
+  }
+}
+
+function clearCurrentLine() {
+  if (isNodeTTY()) {
+    process.stdout.clearLine(0);
+    process.stdout.cursorTo(0);
+  }
+}
+
+function writeLine(text) {
+  if (isNodeTTY()) {
+    process.stdout.write(text);
+  } else {
+    console.log(text);
+  }
+}
+
+function startLoading(message, options = {}) {
+  const style = options.style === "braille" ? "braille" : "ascii";
+  const frames = style === "braille" ? BRAILLE_FRAMES : ASCII_FRAMES;
+  const intervalMs = typeof options.interval === "number" ? options.interval : 100;
+  let frameIndex = 0;
+  let active = true;
+  let currentMessage = message || "Loading";
+
+  function render() {
+    if (!active) return;
+    const frame = frames[frameIndex];
+    frameIndex = (frameIndex + 1) % frames.length;
+    const line = `${currentMessage} ${frame}`;
+    if (isNodeTTY()) {
+      clearCurrentLine();
+      writeLine(line);
+    } else {
+      console.log(line);
+    }
+  }
+
+  const timer = setInterval(render, intervalMs);
+  render();
+
+  function stop(finalText, type = "event") {
+    if (!active) return;
+    active = false;
+    clearInterval(timer);
+    clearCurrentLine();
+    if (finalText !== false) {
+      const output = typeof finalText === "string" ? finalText : currentMessage;
+      logStatic(output, type);
+    }
+  }
+
+  return {
+    update(messageText) {
+      if (typeof messageText === "string") {
+        currentMessage = messageText;
+      }
+    },
+    succeed(finalText) {
+      stop(finalText || `${currentMessage} complete`, "success");
+    },
+    fail(finalText) {
+      stop(finalText || `${currentMessage} failed`, "error");
+    },
+    stop,
+  };
+}
+
+const LoggingFramework = {
+  log: (message) => logStatic(message, "event"),
+  info: (message) => logStatic(message, "info"),
+  success: (message) => logStatic(message, "success"),
+  error: (message) => logStatic(message, "error"),
+  startLoading,
+  startAsciiLoading: (message, options = {}) => startLoading(message, { ...options, style: "ascii" }),
+  startBrailleLoading: (message, options = {}) => startLoading(message, { ...options, style: "braille" }),
+};
+
+module.exports = LoggingFramework;
+
 
 /* === lib: lib\aea.js === */
 // Ash Element API
@@ -1916,9 +2036,9 @@ var activeBundles = {};
 var SystemVersion = 0x80000001;
 var SystemSubver = 0x0000;
 var BuildVersion = "0.1.0";
-var BuildNumber = 89;
-var BuildTimestamp = 1782418896069;
-var BuildExpiration = 1798662096069;
+var BuildNumber = 95;
+var BuildTimestamp = 1783230413439;
+var BuildExpiration = 1799473613439;
 var BuildExpirationDays = 188;
 
 function __AshBuildExpirationCheck() {
@@ -2714,185 +2834,10 @@ notepad();
 
 
 /* === src: src\K\!Kernel.js === */
-
-
-/* === src: src\Settings.js === */
-function dunnySettings() {
-    if (typeof createArkWindow !== 'function') {
-        console.error('createArkWindow is required for dunnySettings');
-        return;
-    }
-
-    const settingsWindow = createArkWindow('DunnySettings', 'DunnySettings', {
-        width: 780,
-        height: 540,
-        x: 40,
-        y: 40,
-        title: 'Dunny Settings',
-    });
-
-    const menuItems = [
-        {
-            key: 'system',
-            label: 'System',
-            content: 'System settings control display, notifications, and power behaviour.\n\n- Display scaling and layout\n- Notifications and focus assist\n- Storage and power management',
-        },
-        {
-            key: 'display',
-            label: 'Display',
-            content: 'Display settings adjust resolution, orientation, and scaling.\n\n- Brightness and night light\n- Resolution and layout\n- Advanced scaling and multi-monitor support',
-        },
-        {
-            key: 'network',
-            label: 'Network',
-            content: 'Network settings manage Wi-Fi, ethernet, and VPN connections.\n\n- Wi-Fi and hotspot\n- Ethernet and proxy\n- VPN and diagnostics',
-        },
-        {
-            key: 'privacy',
-            label: 'Privacy',
-            content: 'Privacy settings control permissions for apps and data access.\n\n- App permissions\n- Camera and microphone access\n- Location and diagnostics',
-        },
-        {
-            key: 'accessibility',
-            label: 'Accessibility',
-            content: 'Accessibility settings help tailor the experience.\n\n- Text size and high contrast\n- Screen reader options\n- Keyboard and pointer behavior',
-        },
-        {
-            key: 'about',
-            label: 'About',
-            content: 'About Dunny Settings.\n\n- Version: 0.1.0\n- Built for scaling tests and UI layout validation\n- This app is intentionally simple and responsive',
-        },
-    ];
-
-    const contentElement = document.getElementById(settingsWindow.contentId);
-    const titleElement = document.getElementById(settingsWindow.titleId);
-
-    if (titleElement) {
-        titleElement.style.fontFamily = 'Segoe UI, sans-serif';
-        titleElement.style.fontWeight = '700';
-        titleElement.style.fontSize = '18px';
-        titleElement.style.backgroundColor = '#111827';
-        titleElement.style.color = '#f8fafc';
-        titleElement.style.padding = '8px 12px';
-    }
-
-    if (contentElement) {
-        contentElement.readOnly = true;
-        contentElement.style.whiteSpace = 'pre-wrap';
-        contentElement.style.fontFamily = 'Segoe UI, sans-serif';
-        contentElement.style.fontSize = '14px';
-        contentElement.style.lineHeight = '1.5';
-        contentElement.style.backgroundColor = '#0f172a';
-        contentElement.style.color = '#e2e8f0';
-        contentElement.style.border = '1px solid #334155';
-        contentElement.style.borderRadius = '14px';
-        contentElement.style.padding = '24px';
-        contentElement.style.boxSizing = 'border-box';
-        contentElement.style.overflow = 'auto';
-    }
-
-    const buttons = [];
-    let selectedMenu = menuItems[0].key;
-
-    function setSelected(menuKey) {
-        selectedMenu = menuKey;
-        const item = menuItems.find((entry) => entry.key === menuKey) || menuItems[0];
-        if (!item) return;
-
-        if (contentElement) {
-            contentElement.value = item.label + '\n\n' + item.content;
-        }
-
-        buttons.forEach((btn) => {
-            const el = document.getElementById(btn.id);
-            if (!el) return;
-            if (btn.key === menuKey) {
-                el.style.backgroundColor = '#4f46e5';
-                el.style.color = '#f8fafc';
-                el.style.borderColor = '#6366f1';
-            } else {
-                el.style.backgroundColor = '#1f2937';
-                el.style.color = '#cbd5e1';
-                el.style.borderColor = '#334155';
-            }
-        });
-    }
-
-    function addMenuButton(item, index) {
-        const buttonId = settingsWindow.createChildButton({
-            name: item.key,
-            x: 0.02,
-            y: 0.08 + index * 0.115,
-            width: 0.24,
-            height: 0.095,
-            fontSize: 0.034,
-            borderRadius: 12,
-            borderColor: '#334155',
-            bg: '#1f2937',
-            textColor: '#cbd5e1',
-            label: item.label,
-        });
-
-        const button = document.getElementById(buttonId);
-        if (button) {
-            button.addEventListener('click', () => setSelected(item.key));
-        }
-
-        buttons.push({ id: buttonId, key: item.key });
-    }
-
-    menuItems.forEach((item, index) => addMenuButton(item, index));
-
-    function addBackgroundPanels() {
-        AEA({
-            type: 'div',
-            id: 'dunny-settings-menu-panel',
-            position: {
-                x: settingsWindow.x + Math.round(settingsWindow.width * 0.02),
-                y: settingsWindow.y + Math.round(settingsWindow.height * 0.08),
-            },
-            size: {
-                width: Math.round(settingsWindow.width * 0.27),
-                height: Math.round(settingsWindow.height * 0.86),
-            },
-            border: { width: 1, color: '#334155', radius: 18 },
-            colors: { bg: '#0f172a', text: '#ffffff' },
-            text: { content: '', align: 'left', size: 14, font: 'Segoe UI' },
-            css: {
-                position: 'absolute',
-                pointerEvents: 'none',
-                boxSizing: 'border-box',
-            },
-        });
-
-        AEA({
-            type: 'div',
-            id: 'dunny-settings-content-panel',
-            position: {
-                x: settingsWindow.x + Math.round(settingsWindow.width * 0.31),
-                y: settingsWindow.y + Math.round(settingsWindow.height * 0.08),
-            },
-            size: {
-                width: Math.round(settingsWindow.width * 0.67),
-                height: Math.round(settingsWindow.height * 0.86),
-            },
-            border: { width: 1, color: '#334155', radius: 18 },
-            colors: { bg: 'rgba(15, 23, 42, 0.96)', text: '#ffffff' },
-            text: { content: '', align: 'left', size: 14, font: 'Segoe UI' },
-            css: {
-                position: 'absolute',
-                pointerEvents: 'none',
-                boxSizing: 'border-box',
-            },
-        });
-    }
-
-    addBackgroundPanels();
-    setSelected(selectedMenu);
-}
-
-dunnySettings();
-
+const kernelLoader = LoggingFramework.startBrailleLoading("Kernel Loading.. ");
+setTimeout(() => {
+    kernelLoader.succeed("Kernel Loaded Successfully");
+}, 1000);
 
 /* === src: src\virtualfs.js === */
 // Virtual file system for Threshold
@@ -3334,5 +3279,40 @@ dunnySettings();
 
 
 });
+
+/***/ })
+/******/ 	]);
+/************************************************************************/
+/******/ 	// The module cache
+/******/ 	var __webpack_module_cache__ = {};
+/******/ 	
+/******/ 	// The require function
+/******/ 	function __webpack_require__(moduleId) {
+/******/ 		// Check if module is in cache
+/******/ 		var cachedModule = __webpack_module_cache__[moduleId];
+/******/ 		if (cachedModule !== undefined) {
+/******/ 			return cachedModule.exports;
+/******/ 		}
+/******/ 		// Create a new module (and put it into the cache)
+/******/ 		var module = __webpack_module_cache__[moduleId] = {
+/******/ 			// no module.id needed
+/******/ 			// no module.loaded needed
+/******/ 			exports: {}
+/******/ 		};
+/******/ 	
+/******/ 		// Execute the module function
+/******/ 		__webpack_modules__[moduleId](module, module.exports, __webpack_require__);
+/******/ 	
+/******/ 		// Return the exports of the module
+/******/ 		return module.exports;
+/******/ 	}
+/******/ 	
+/************************************************************************/
+/******/ 	
+/******/ 	// startup
+/******/ 	// Load entry module and return exports
+/******/ 	// This entry module is referenced by other modules so it can't be inlined
+/******/ 	var __webpack_exports__ = __webpack_require__(0);
+/******/ 	
 /******/ })()
 ;
