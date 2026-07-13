@@ -20,6 +20,14 @@ function isNodeTTY() {
   );
 }
 
+function isBrowserConsole() {
+  return (
+    typeof window !== "undefined" &&
+    typeof console !== "undefined" &&
+    typeof console.clear === "function"
+  );
+}
+
 function formatLog(type, message) {
   const icon = ICONS[type] || ICONS.info;
   return `${icon} ${message}`;
@@ -38,6 +46,8 @@ function clearCurrentLine() {
   if (isNodeTTY()) {
     process.stdout.clearLine(0);
     process.stdout.cursorTo(0);
+  } else if (isBrowserConsole()) {
+    console.clear();
   }
 }
 
@@ -65,6 +75,9 @@ function startLoading(message, options = {}) {
     if (isNodeTTY()) {
       clearCurrentLine();
       writeLine(line);
+    } else if (isBrowserConsole()) {
+      clearCurrentLine();
+      console.log(line);
     } else {
       console.log(line);
     }
