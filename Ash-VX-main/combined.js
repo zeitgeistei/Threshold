@@ -132,7 +132,7 @@ module.exports = LoggingFramework;
 
 /* === lib: lib\aea.js === */
 // Ash Element API
-function AEA({ type, id, position = { x: 0, y: 0 }, size = { width: 100, height: 40 }, border = { width: 0, color: "transparent", radius: 0 }, colors = { bg: "transparent", text: "#000" }, text = { content: "", align: "left", size: 14, font: "sans-serif" }, readOnly = false, imageUrl = null, classNames = "", css = {} }) {
+function AEA({ type, id, position = { x: 0, y: 0 }, size = { width: 100, height: 40 }, border = { width: 0, color: "transparent", radius: 0 }, colors = { bg: "transparent", text: "#000" }, text = { content: "", align: "left", size: 14, font: "sans-serif" }, readOnly = false, imageUrl = null, classNames = "", css = {}, theme = null }) {
   let element;
 
   //
@@ -189,6 +189,16 @@ function AEA({ type, id, position = { x: 0, y: 0 }, size = { width: 100, height:
   if (classNames) {
     const classes = classNames.split(" ").filter(Boolean);
     element.classList.add(...classes);
+  }
+
+  const hasForcedTheme = Boolean(theme) || (classNames || "").split(/\s+/).filter(Boolean).some((name) => /^theme-/i.test(name));
+  if (!["Input"].includes(type) && !hasForcedTheme) {
+    element.classList.add("aero-glass-surface");
+  }
+
+  if (theme) {
+    const normalizedTheme = String(theme).trim().toLowerCase();
+    element.classList.add(`theme-${normalizedTheme}`);
   }
 
   //
@@ -2041,13 +2051,13 @@ var activeBundles = {};
 
 
 /* === src: src\!FemBoyBoot.js === */
-var SystemVersion = 0x80000001;
+var SystemVersion = 0x10000;
 var SystemSubver = 0x0000;
-var BuildVersion = "0.1.0";
-var BuildNumber = 99;
-var BuildTimestamp = 1783974674043;
-var BuildExpiration = 1801254674043;
-var BuildExpirationDays = 200;
+var BuildVersion = "1.0.0";
+var BuildNumber = 113;
+var BuildTimestamp = 1783976139281;
+var BuildExpiration = 1792184139281;
+var BuildExpirationDays = 95;
 
 function __AshBuildExpirationCheck() {
   if (Date.now() > BuildExpiration) {
@@ -2263,7 +2273,7 @@ function createArkWindow(Name, Process, Info) {
         setProperty(resizeId, 'top', px(state.y + state.height - 28));
         setProperty(resizeId, 'width', px(24));
         setProperty(resizeId, 'height', px(24));
-
+/*
         // overlay covers the whole window (including title) and stays readOnly
         setProperty(overlayId, 'left', px(state.x));
         setProperty(overlayId, 'top', px(state.y));
@@ -2271,7 +2281,7 @@ function createArkWindow(Name, Process, Info) {
         setProperty(overlayId, 'height', px(state.height));
         setProperty(overlayId, 'font-size', px(capFontSize(Math.round(state.width * 0.03), state.width, 12)));
         const overlayEl = document.getElementById(overlayId);
-        if (overlayEl) overlayEl.readOnly = true;
+        if (overlayEl) overlayEl.readOnly = true;*/
 
         state.buttons.forEach(button => {
             const x = state.x + Math.round(state.width * clamp(button.x, 0, 1));
@@ -2303,6 +2313,7 @@ function createArkWindow(Name, Process, Info) {
             colors: { bg: config.bg || '#333', text: config.textColor || '#fff' },
             text: { content: config.label || '', align: 'center', size: capFontSize(Math.max(12, Math.round(state.width * (config.fontSize || 0.04))), sized.width, 12), font: config.font || 'sans-serif' },
             css: { position: 'absolute', cursor: 'pointer' },
+            theme: config.theme || null,
         });
 
         state.buttons.push({
@@ -2329,10 +2340,10 @@ function createArkWindow(Name, Process, Info) {
         id: frameId,
         position: { x: state.x, y: state.y },
         size: { width: state.width, height: state.height },
-        border: { width: 2, color: '#fff', radius: 12 },
-        colors: { bg: '#111', text: '#fff' },
+        border: { width: 1, color: 'rgba(255,255,255,0.22)', radius: 12 },
+        colors: { bg: 'transparent', text: '#fff' },
         text: { content: '', align: 'left', size: 14, font: 'sans-serif' },
-        css: { position: 'absolute', overflow: 'hidden' },
+        css: { position: 'absolute', overflow: 'hidden', background: 'transparent', boxShadow: '0 0 0 1px rgba(255,255,255,0.08) inset' },
     });
 
     AEA({
@@ -2341,10 +2352,10 @@ function createArkWindow(Name, Process, Info) {
         position: { x: state.x, y: state.y },
         size: { width: state.width, height: titleHeight },
         border: { width: 0, color: 'transparent', radius: 0 },
-        colors: { bg: '#222', text: '#fff' },
+        colors: { bg: 'transparent', text: '#fff' },
         text: { content: state.title, align: 'left', size: Math.max(14, Math.round(state.width * 0.04)), font: 'Arial' },
         readOnly: true,
-        css: { position: 'absolute', padding: '10px', boxSizing: 'border-box' },
+        css: { position: 'absolute', padding: '10px', boxSizing: 'border-box', background: 'rgba(255,255,255,0.03)', borderRadius: '12px 12px 0 0', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' },
     });
 
     AEA({
@@ -2353,14 +2364,14 @@ function createArkWindow(Name, Process, Info) {
         position: { x: state.x, y: state.y + titleHeight },
         size: { width: state.width, height: state.height - titleHeight },
         border: { width: 0, color: 'transparent', radius: 0 },
-        colors: { bg: '#000', text: '#fff' },
+        colors: { bg: 'transparent', text: '#fff' },
         text: { content: '', align: 'left', size: Math.max(12, Math.round(state.width * 0.03)), font: 'Arial' },
         readOnly: true,
-        css: { position: 'absolute', padding: '12px', boxSizing: 'border-box', overflow: 'auto' },
+        css: { position: 'absolute', padding: '12px', boxSizing: 'border-box', overflow: 'auto', background: 'transparent', borderRadius: '0 0 12px 12px' },
     });
 
     // transparent overlay that covers the full window with white text
-    AEA({
+    /*AEA({
         type: 'TextArea',
         id: overlayId,
         position: { x: state.x, y: state.y },
@@ -2370,7 +2381,7 @@ function createArkWindow(Name, Process, Info) {
         text: { content: '', align: 'left', size: Math.max(12, Math.round(state.width * 0.03)), font: 'Arial' },
         readOnly: true,
         css: { position: 'absolute', padding: '12px', boxSizing: 'border-box', overflow: 'auto', background: 'transparent', color: '#fff', zIndex: 9999 },
-    });
+    });*/
 
     AEA({
         type: 'Button',
@@ -2381,7 +2392,7 @@ function createArkWindow(Name, Process, Info) {
         colors: { bg: '#c0392b', text: '#fff' },
         text: { content: 'X', align: 'center', size: Math.max(16, Math.round(state.width * 0.035)), font: 'Arial' },
         readOnly: true,
-        css: { position: 'absolute', cursor: 'pointer' },
+        css: { position: 'absolute', cursor: 'pointer', borderRadius: '0 12px 0 0'},
     });
 
     AEA({
@@ -2406,6 +2417,7 @@ function createArkWindow(Name, Process, Info) {
         text: { content: '', align: 'center', size: 12, font: 'Arial' },
         readOnly: true,
         css: { position: 'absolute', cursor: 'nwse-resize' },
+        theme: 'solid',
     });
 
     function startDrag(event) {
@@ -2935,6 +2947,9 @@ ComponentRegister("SysMain", "1.0.0", "kernel-001", function(context, args) {
     (Array.isArray(args) ? args : [args]).forEach((arg, index) => {
         context.debug(`Arg[${index}]`, arg);
     });
+
+    console.log("Kernel component executed with context:", context);
+    
 });
 
 function runComponent(kl, runtimeContext = {}, rawArgs = []) {

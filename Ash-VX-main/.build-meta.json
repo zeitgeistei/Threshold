@@ -1,13 +1,13 @@
 {
-  "buildNumber": 99,
-  "version": "0.1.0",
-  "developer": true,
-  "expirationDays": 200,
-  "systemVersion": 2147483649,
+  "buildNumber": 113,
+  "version": "1.0.0",
+  "developer": false,
+  "expirationDays": 95,
+  "systemVersion": 65536,
   "systemSubver": 0,
-  "buildTimestamp": 1783974674043,
-  "expirationTimestamp": 1801254674043,
-  "lastVersion": "0.1.0",
-  "lastDeveloper": true,
-  "lastExpirationDays": 200
+  "buildTimestamp": 1783976139281,
+  "expirationTimestamp": 1792184139281,
+  "lastVersion": "1.0.0",
+  "lastDeveloper": false,
+  "lastExpirationDays": 95
 }

@@ -1,10 +1,10 @@
-var SystemVersion = 0x80000001;
+var SystemVersion = 0x10000;
 var SystemSubver = 0x0000;
-var BuildVersion = "0.1.0";
-var BuildNumber = 99;
-var BuildTimestamp = 1783974674043;
-var BuildExpiration = 1801254674043;
-var BuildExpirationDays = 200;
+var BuildVersion = "1.0.0";
+var BuildNumber = 113;
+var BuildTimestamp = 1783976139281;
+var BuildExpiration = 1792184139281;
+var BuildExpirationDays = 95;
 
 function __AshBuildExpirationCheck() {
   if (Date.now() > BuildExpiration) {

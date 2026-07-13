@@ -1,5 +1,5 @@
 // Ash Element API
-function AEA({ type, id, position = { x: 0, y: 0 }, size = { width: 100, height: 40 }, border = { width: 0, color: "transparent", radius: 0 }, colors = { bg: "transparent", text: "#000" }, text = { content: "", align: "left", size: 14, font: "sans-serif" }, readOnly = false, imageUrl = null, classNames = "", css = {} }) {
+function AEA({ type, id, position = { x: 0, y: 0 }, size = { width: 100, height: 40 }, border = { width: 0, color: "transparent", radius: 0 }, colors = { bg: "transparent", text: "#000" }, text = { content: "", align: "left", size: 14, font: "sans-serif" }, readOnly = false, imageUrl = null, classNames = "", css = {}, theme = null }) {
   let element;
 
   //
@@ -56,6 +56,16 @@ function AEA({ type, id, position = { x: 0, y: 0 }, size = { width: 100, height:
   if (classNames) {
     const classes = classNames.split(" ").filter(Boolean);
     element.classList.add(...classes);
+  }
+
+  const hasForcedTheme = Boolean(theme) || (classNames || "").split(/\s+/).filter(Boolean).some((name) => /^theme-/i.test(name));
+  if (!["Input"].includes(type) && !hasForcedTheme) {
+    element.classList.add("aero-glass-surface");
+  }
+
+  if (theme) {
+    const normalizedTheme = String(theme).trim().toLowerCase();
+    element.classList.add(`theme-${normalizedTheme}`);
   }
 
   //

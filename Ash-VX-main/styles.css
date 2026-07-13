@@ -26,6 +26,36 @@ button {
     cursor: pointer;
 }
 
+.aero-glass-surface {
+    background: linear-gradient(135deg, rgba(255,255,255,0.34), rgba(180,214,255,0.16) 55%, rgba(86,122,180,0.18));
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(255,255,255,0.36) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.45), inset 0 -1px 0 rgba(0,0,0,0.12), 0 8px 18px rgba(0, 0, 0, 0.18);
+    color: #f8fafc !important;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+    transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease;
+}
+
+.aero-glass-surface:hover {
+    transform: translateY(-1px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(0,0,0,0.16), 0 10px 22px rgba(0, 0, 0, 0.22);
+}
+
+.aero-glass-surface:active {
+    transform: translateY(1px);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.22);
+}
+
+.theme-solid {
+    background-color: #313244 !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    text-shadow: none !important;
+}
+
 textarea {
     border: none;
     background-color: #313244;
