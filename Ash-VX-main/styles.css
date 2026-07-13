@@ -102,3 +102,374 @@ img {
 * {
     -webkit-text-size-adjust: none;
 }
+
+/* ========== KEYFRAME ANIMATIONS ========== */
+
+@keyframes ash-window-enter {
+    from {
+        opacity: 0;
+        transform: perspective(1200px) rotateX(8deg) scale(0.92) translateY(20px);
+        filter: blur(4px);
+    }
+    to {
+        opacity: 1;
+        transform: perspective(1200px) rotateX(0) scale(1) translateY(0);
+        filter: blur(0);
+    }
+}
+
+@keyframes ash-window-exit {
+    from {
+        opacity: 1;
+        transform: perspective(1200px) rotateX(0) scale(1) translateY(0);
+        filter: blur(0);
+    }
+    to {
+        opacity: 0;
+        transform: perspective(1200px) rotateX(-12deg) scale(0.88) translateY(40px);
+        filter: blur(6px);
+    }
+}
+
+@keyframes ash-window-minimize {
+    from {
+        opacity: 1;
+        transform: perspective(1200px) scale(1) translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: perspective(1200px) scale(0.75) translateY(180px);
+    }
+}
+
+@keyframes ash-start-menu-enter {
+    from {
+        opacity: 0;
+        transform: perspective(1000px) scale(0.88) rotateY(-8deg) translateY(20px);
+        filter: blur(8px);
+    }
+    to {
+        opacity: 1;
+        transform: perspective(1000px) scale(1) rotateY(0) translateY(0);
+        filter: blur(0);
+    }
+}
+
+@keyframes ash-start-menu-exit {
+    from {
+        opacity: 1;
+        transform: perspective(1000px) scale(1) rotateY(0) translateY(0);
+        filter: blur(0);
+    }
+    to {
+        opacity: 0;
+        transform: perspective(1000px) scale(0.92) rotateY(8deg) translateY(-20px);
+        filter: blur(8px);
+    }
+}
+
+@keyframes ash-taskbar-enter {
+    from {
+        opacity: 0;
+        transform: translateY(120%);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes ash-button-pulse {
+    0%, 100% {
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 0 0 0 rgba(91, 155, 213, 0.4);
+    }
+    50% {
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.6), 0 0 12px 2px rgba(91, 155, 213, 0.2);
+    }
+}
+
+@keyframes ash-menu-item-slide {
+    from {
+        opacity: 0;
+        transform: translateX(-16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* ========== TASKBAR ========== */
+
+.ash-taskbar {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border: 1px solid rgba(255,255,255,0.45);
+    border-radius: 16px 16px 0 0;
+    background: linear-gradient(135deg, rgba(232,242,255,0.88), rgba(173,206,255,0.72));
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.65), 0 -10px 30px rgba(0, 0, 0, 0.16);
+    z-index: 9998;
+    transition: all 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ash-taskbar.ash-taskbar-enter {
+    animation: ash-taskbar-enter 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.ash-taskbar:hover {
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.75), 0 -14px 38px rgba(0, 0, 0, 0.22);
+    background: linear-gradient(135deg, rgba(240,248,255,0.92), rgba(186,220,255,0.78));
+}
+
+/* ========== START BUTTON ========== */
+
+.ash-start-button {
+    position: absolute;
+    border: 1px solid rgba(255,255,255,0.55);
+    border-radius: 10px;
+    color: #0f2f56;
+    background: rgba(255,255,255,0.45);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+    font-family: "Segoe UI", Arial, sans-serif;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ash-start-button:hover {
+    background: rgba(255,255,255,0.68);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 4px 12px rgba(91, 155, 213, 0.3);
+    transform: translateY(-2px);
+}
+
+.ash-start-button:active {
+    background: rgba(255,255,255,0.55);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+    transform: translateY(0);
+}
+
+/* ========== TASKBAR BUTTONS ========== */
+
+.ash-taskbar-window-button {
+    position: absolute;
+    border: 1px solid rgba(255,255,255,0.55);
+    border-radius: 10px;
+    color: #183b63;
+    background: rgba(255,255,255,0.45);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+    font-family: "Segoe UI", Arial, sans-serif;
+    text-align: left;
+    padding: 0 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ash-taskbar-window-button.ash-taskbar-button-enter {
+    animation: ash-button-pulse 0.6s ease-out forwards;
+}
+
+.ash-taskbar-window-button:hover {
+    background: rgba(255,255,255,0.7);
+    border-color: var(--taskbar-accent);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 0 0 2px rgba(91, 155, 213, 0.3);
+    transform: translateY(-2px);
+}
+
+.ash-taskbar-window-button:active {
+    background: rgba(255,255,255,0.55);
+    transform: translateY(0);
+}
+
+/* ========== START MENU ========== */
+
+.ash-start-menu {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid rgba(255,255,255,0.45);
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(236,244,255,0.92), rgba(182,213,255,0.78));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.7), 0 18px 42px rgba(0, 0, 0, 0.24);
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transform: perspective(1000px) scale(0.88) rotateY(-8deg);
+    transition: all 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ash-start-menu.ash-start-menu-open {
+    opacity: 1;
+    pointer-events: auto;
+    transform: perspective(1000px) scale(1) rotateY(0);
+}
+
+/* ========== START MENU HEADER ========== */
+
+.ash-start-menu-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 8px 12px;
+    border-bottom: 1px solid rgba(24, 59, 99, 0.12);
+    animation: ash-menu-item-slide 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.ash-start-menu-avatar {
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--start-accent), #ffffff);
+    color: #fff;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(91, 155, 213, 0.3);
+    transition: all 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ash-start-menu-header:hover .ash-start-menu-avatar {
+    transform: scale(1.08) rotateZ(8deg);
+    box-shadow: 0 6px 18px rgba(91, 155, 213, 0.5);
+}
+
+.ash-start-menu-user {
+    font-size: 15px;
+    font-weight: 700;
+    color: #103458;
+}
+
+.ash-start-menu-subtitle {
+    font-size: 11px;
+    color: #486a8b;
+}
+
+/* ========== START MENU CONTENT ========== */
+
+.ash-start-menu-content {
+    display: grid;
+    gap: 10px;
+    overflow: auto;
+    max-height: 320px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(91, 155, 213, 0.3) transparent;
+}
+
+.ash-start-menu-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ash-start-menu-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.ash-start-menu-content::-webkit-scrollbar-thumb {
+    background: rgba(91, 155, 213, 0.4);
+    border-radius: 3px;
+    transition: background 0.2s;
+}
+
+.ash-start-menu-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(91, 155, 213, 0.6);
+}
+
+/* ========== START MENU SECTION ========== */
+
+.ash-start-menu-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ash-start-menu-section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #486a8b;
+    padding: 2px 4px;
+}
+
+/* ========== START MENU ITEMS ========== */
+
+.ash-start-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 10px;
+    cursor: pointer;
+    text-align: left;
+    font-size: 13px;
+    border: 1px solid rgba(255,255,255,0.55);
+    border-radius: 10px;
+    color: #183b63;
+    background: rgba(255,255,255,0.45);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+    font-family: "Segoe UI", Arial, sans-serif;
+    transition: all 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ash-start-menu-item.ash-start-menu-item-enter {
+    animation: ash-menu-item-slide 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.ash-start-menu-item.ash-start-menu-item-enter:nth-child(2) {
+    animation-delay: 0.08s;
+}
+
+.ash-start-menu-item.ash-start-menu-item-enter:nth-child(3) {
+    animation-delay: 0.16s;
+}
+
+.ash-start-menu-item:hover {
+    background: linear-gradient(135deg, rgba(255,255,255,0.75), rgba(255,255,255,0.55));
+    border-color: var(--start-accent);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 0 0 1px var(--start-accent), 0 4px 12px rgba(91, 155, 213, 0.2);
+    transform: translateX(4px);
+}
+
+.ash-start-menu-item:active {
+    background: rgba(255,255,255,0.55);
+    transform: translateX(2px);
+}
+
+.ash-start-menu-item.compact {
+    padding: 8px 10px;
+}
+
+.ash-start-menu-item-icon {
+    width: 22px;
+    font-size: 16px;
+    text-align: center;
+    transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ash-start-menu-item:hover .ash-start-menu-item-icon {
+    transform: scale(1.2) rotate(8deg);
+}
+
+/* ========== WINDOW ANIMATIONS ========== */
+
+.ash-window-enter {
+    animation: ash-window-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+}
+
+.ash-window-exit {
+    animation: ash-window-exit 0.28s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+}
+
+.ash-window-minimized {
+    animation: ash-window-minimize 0.24s cubic-bezier(0.22, 1, 0.36, 1) forwards !important;
+}
+

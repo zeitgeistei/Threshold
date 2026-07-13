@@ -2054,9 +2054,9 @@ var activeBundles = {};
 var SystemVersion = 0x10000;
 var SystemSubver = 0x0000;
 var BuildVersion = "1.0.0";
-var BuildNumber = 113;
-var BuildTimestamp = 1783976139281;
-var BuildExpiration = 1792184139281;
+var BuildNumber = 134;
+var BuildTimestamp = 1783982019447;
+var BuildExpiration = 1792190019447;
 var BuildExpirationDays = 95;
 
 function __AshBuildExpirationCheck() {
@@ -2147,6 +2147,459 @@ StopProcess("FemboyBoot");
 
 
 /* === src: src\!WindowMan.js === */
+function createAshWindowManager() {
+    if (typeof window !== 'undefined' && window.__ashWindowManager) {
+        return window.__ashWindowManager;
+    }
+
+    const defaultStartApps = [
+        {
+            id: 'notepad',
+            label: 'Notepad',
+            icon: '📝',
+            onLaunch: () => {
+                if (typeof StartProcess === 'function') StartProcess('Notepad');
+                if (typeof createArkWindow === 'function') {
+                    const win = createArkWindow('Notepad', 'Notepad', {
+                        width: 320,
+                        height: 260,
+                        x: 80,
+                        y: 60,
+                        title: 'Notepad',
+                        themeColor: '#4f8cc9',
+                    });
+                    const content = document.getElementById(win.contentId);
+                    if (content) {
+                        content.value = 'Welcome to Ash';
+                    }
+                }
+            },
+        },
+        {
+            id: 'explorer',
+            label: 'Explorer',
+            icon: '📁',
+            onLaunch: () => {
+                if (typeof StartProcess === 'function') StartProcess('Explorer');
+                if (typeof createArkWindow === 'function') {
+                    createArkWindow('Explorer', 'Explorer', {
+                        width: 420,
+                        height: 320,
+                        x: 140,
+                        y: 90,
+                        title: 'Explorer',
+                        themeColor: '#5f8f4f',
+                    });
+                }
+            },
+        },
+    ];
+
+    const defaultShortcuts = [
+        { id: 'documents', label: 'Documents', icon: '📄' },
+        { id: 'pictures', label: 'Pictures', icon: '🖼️' },
+    ];
+
+    const manager = {
+        windows: [],
+        taskbar: null,
+        startButton: null,
+        startMenu: null,
+        taskbarButtons: [],
+        shellTheme: '#5b9bd5',
+        username: 'Ash',
+        startApps: defaultStartApps.slice(),
+        startShortcuts: defaultShortcuts.slice(),
+        startMenuOpen: false,
+        register(windowState) {
+            if (!this.windows.some((entry) => entry.id === windowState.id)) {
+                this.windows.push(windowState);
+            }
+            this.ensureShellUI();
+            this.refreshTaskbar();
+        },
+        unregister(windowState) {
+            this.windows = this.windows.filter((entry) => entry.id !== windowState.id);
+            this.refreshTaskbar();
+        },
+        setShellTheme(themeColor) {
+            this.shellTheme = themeColor || '#5b9bd5';
+            this.refreshTaskbar();
+            this.refreshStartMenu();
+        },
+        setUsername(name) {
+            this.username = name || 'Ash';
+            this.refreshStartMenu();
+        },
+        setStartMenuItems(apps, shortcuts) {
+            this.startApps = (apps && apps.length ? apps : defaultStartApps).slice();
+            this.startShortcuts = (shortcuts && shortcuts.length ? shortcuts : defaultShortcuts).slice();
+            this.refreshStartMenu();
+        },
+        ensureShellUI() {
+            if (this.taskbar && this.startButton && this.startMenu) return;
+            const container = document.getElementById('bema-container');
+            if (!container) return;
+            const rect = container.getBoundingClientRect();
+            const taskbarHeight = 54;
+            const taskbarY = Math.max(0, rect.height - taskbarHeight);
+
+            // Create taskbar using AEA
+            AEA({
+                type: 'div',
+                id: 'ash-taskbar',
+                position: { x: 0, y: taskbarY },
+                size: { width: rect.width, height: taskbarHeight },
+                border: { width: 1, color: 'rgba(0,0,0,0.45)', radius: 0 },
+                colors: { bg: 'rgba(240,248,255,0.02)', text: '#fff' },
+                classNames: 'aero-glass-surface ash-taskbar ash-taskbar-enter',
+                css: {
+                    position: 'absolute',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '8px',
+                    backdropFilter: 'blur(16px)',
+                    WebkitBackdropFilter: 'blur(16px)',
+                    boxShadow: 'inset 0 1px 0 rgba(0,0,0,0.65), 0 -10px 30px rgba(0, 0, 0, 0.16)',
+                    borderRadius: '0',
+                    borderTop: '1px solid rgba(0,0,0,0.45)',
+                    borderBottom: 'none',
+                    borderLeft: 'none',
+                    borderRight: 'none',
+                    zIndex: '9998',
+                    overflow: 'visible',
+                }
+            });
+            this.taskbar = document.getElementById('ash-taskbar');
+
+            // Create start button using AEA
+            AEA({
+                type: 'Button',
+                id: 'ash-start-button',
+                position: { x: 8, y: 8 },
+                size: { width: 92, height: 36 },
+                border: { width: 1, color: 'rgba(0,0,0,0.55)', radius: 10 },
+                colors: { bg: 'rgba(0,0,0,0.45)', text: '#0f2f56' },
+                text: { content: 'Start', align: 'center', size: 13, font: 'Segoe UI' },
+                classNames: 'ash-start-button',
+                css: {
+                    position: 'absolute',
+                    cursor: 'pointer',
+                    fontWeight: '700',
+                    boxShadow: 'inset 0 1px 0 rgba(0,0,0,0.6)',
+                    transition: 'all 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
+                }
+            });
+            this.startButton = document.getElementById('ash-start-button');
+            this.startButton.addEventListener('click', () => this.toggleStartMenu());
+
+            // Create start menu using AEA
+            AEA({
+                type: 'div',
+                id: 'ash-start-menu',
+                position: { x: 10, y: Math.max(10, rect.height - 420 - 64) },
+                size: { width: 360, height: 420 },
+                border: { width: 1, color: 'rgba(0,0,0,0.45)', radius: 18 },
+                colors: { bg: 'rgba(240,248,255,0.02)', text: '#fff' },
+                classNames: 'aero-glass-surface ash-start-menu',
+                css: {
+                    position: 'absolute',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px',
+                    padding: '12px',
+                    backdropFilter: 'blur(20px)',
+                    WebkitBackdropFilter: 'blur(20px)',
+                    boxShadow: 'inset 0 1px 0 rgba(0,0,0,0.7), 0 18px 42px rgba(0, 0, 0, 0.24)',
+                    zIndex: '9999',
+                    opacity: '0',
+                    pointerEvents: 'none',
+                    transform: 'perspective(1000px) scale(0.88) rotateY(-8deg)',
+                    transition: 'all 0.24s cubic-bezier(0.22, 1, 0.36, 1)',
+                    overflow: 'hidden',
+                }
+            });
+            this.startMenu = document.getElementById('ash-start-menu');
+
+            document.addEventListener('mousedown', (event) => {
+                const clickedInsideMenu = this.startMenu && this.startMenu.contains(event.target);
+                const clickedStartButton = this.startButton && this.startButton.contains(event.target);
+                if (this.startMenuOpen && !clickedInsideMenu && !clickedStartButton) {
+                    this.hideStartMenu();
+                }
+            });
+
+            this.renderTaskbar();
+            this.renderStartMenu();
+        },
+        refreshTaskbar() {
+            if (!this.taskbar) {
+                this.ensureShellUI();
+                return;
+            }
+            this.renderTaskbar();
+        },
+        refreshStartMenu() {
+            if (!this.startMenu) {
+                this.ensureShellUI();
+                return;
+            }
+            this.renderStartMenu();
+        },
+        renderTaskbar() {
+            if (!this.taskbar || !this.startButton) return;
+            const container = document.getElementById('bema-container');
+            if (!container) return;
+            const rect = container.getBoundingClientRect();
+
+            // Remove old window buttons
+            this.taskbarButtons.forEach((id) => {
+                const oldButton = document.getElementById(id);
+                if (oldButton) oldButton.remove();
+            });
+            this.taskbarButtons = [];
+
+            // Create window buttons using AEA
+            const visibleWindows = this.windows.filter((entry) => entry && !entry.closed);
+            visibleWindows.forEach((windowState, index) => {
+                const buttonId = `${windowState.id}-taskbar`;
+                const leftOffset = 112 + index * 168;
+                AEA({
+                    type: 'Button',
+                    id: buttonId,
+                    position: { x: leftOffset, y: 8 },
+                    size: { width: 156, height: 36 },
+                    border: { width: 1, color: 'rgba(0,0,0,0.55)', radius: 10 },
+                    colors: { bg: 'rgba(0,0,0,0.45)', text: '#183b63' },
+                    text: { content: windowState.title || windowState.process || `Window ${index + 1}`, align: 'left', size: 12, font: 'Segoe UI' },
+                    classNames: 'ash-taskbar-window-button ash-taskbar-button-enter',
+                    css: {
+                        position: 'absolute',
+                        cursor: 'pointer',
+                        boxShadow: 'inset 0 1px 0 rgba(0,0,0,0.6)',
+                        transition: 'all 0.22s cubic-bezier(0.22, 1, 0.36, 1)',
+                        paddingLeft: '12px',
+                        paddingRight: '12px',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                    }
+                });
+                const button = document.getElementById(buttonId);
+                if (button) {
+                    button.style.setProperty('--taskbar-accent', windowState.themeColor || this.shellTheme);
+                    button.addEventListener('click', () => {
+                        if (windowState.minimized) {
+                            windowState.restoreWindow();
+                        } else {
+                            windowState.minimizeWindow();
+                        }
+                    });
+                }
+                this.taskbarButtons.push(buttonId);
+            });
+        },
+        renderStartMenu() {
+            if (!this.startMenu) return;
+            this.startMenu.innerHTML = '';
+
+            // Create header section
+            const headerDiv = document.createElement('div');
+            headerDiv.className = 'ash-start-menu-header';
+            headerDiv.style.display = 'flex';
+            headerDiv.style.alignItems = 'center';
+            headerDiv.style.gap = '10px';
+            headerDiv.style.padding = '10px 8px 12px';
+            headerDiv.style.borderBottom = '1px solid rgba(24, 59, 99, 0.12)';
+            headerDiv.style.animation = 'ash-menu-item-slide 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards';
+            
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = 'ash-start-menu-avatar';
+            avatarDiv.textContent = 'A';
+            avatarDiv.style.width = '42px';
+            avatarDiv.style.height = '42px';
+            avatarDiv.style.display = 'grid';
+            avatarDiv.style.placeItems = 'center';
+            avatarDiv.style.borderRadius = '50%';
+            avatarDiv.style.background = `linear-gradient(135deg, ${this.shellTheme}, #ffffff)`;
+            avatarDiv.style.color = '#fff';
+            avatarDiv.style.fontWeight = '700';
+            avatarDiv.style.boxShadow = '0 4px 12px rgba(91, 155, 213, 0.3)';
+            avatarDiv.style.transition = 'all 0.28s cubic-bezier(0.22, 1, 0.36, 1)';
+            
+            const infoDiv = document.createElement('div');
+            infoDiv.style.display = 'flex';
+            infoDiv.style.flexDirection = 'column';
+            
+            const userDiv = document.createElement('div');
+            userDiv.className = 'ash-start-menu-user';
+            userDiv.textContent = this.username;
+            userDiv.style.fontSize = '15px';
+            userDiv.style.fontWeight = '700';
+            userDiv.style.color = '#103458';
+            
+            const subtitleDiv = document.createElement('div');
+            subtitleDiv.className = 'ash-start-menu-subtitle';
+            subtitleDiv.textContent = '';
+            subtitleDiv.style.fontSize = '11px';
+            subtitleDiv.style.color = '#486a8b';
+            
+            infoDiv.appendChild(userDiv);
+            infoDiv.appendChild(subtitleDiv);
+            headerDiv.appendChild(avatarDiv);
+            headerDiv.appendChild(infoDiv);
+            this.startMenu.appendChild(headerDiv);
+
+            // Create content section
+            const contentDiv = document.createElement('div');
+            contentDiv.className = 'ash-start-menu-content';
+            contentDiv.style.display = 'grid';
+            contentDiv.style.gap = '10px';
+            contentDiv.style.overflow = 'auto';
+            contentDiv.style.maxHeight = '320px';
+            this.startMenu.appendChild(contentDiv);
+
+            // Programs section
+            const appSection = document.createElement('div');
+            appSection.className = 'ash-start-menu-section';
+            appSection.style.display = 'flex';
+            appSection.style.flexDirection = 'column';
+            appSection.style.gap = '6px';
+            
+            const appTitle = document.createElement('div');
+            appTitle.className = 'ash-start-menu-section-title';
+            appTitle.textContent = 'Programs';
+            appTitle.style.fontSize = '11px';
+            appTitle.style.fontWeight = '700';
+            appTitle.style.textTransform = 'uppercase';
+            appTitle.style.letterSpacing = '0.08em';
+            appTitle.style.color = '#486a8b';
+            appTitle.style.padding = '2px 4px';
+            appSection.appendChild(appTitle);
+            contentDiv.appendChild(appSection);
+
+            this.startApps.forEach((app, idx) => {
+                const buttonId = `ash-start-app-${app.id}`;
+                AEA({
+                    type: 'Button',
+                    id: buttonId,
+                    position: { x: 0, y: 0 },
+                    size: { width: 320, height: 36 },
+                    border: { width: 1, color: 'rgba(0,0,0,0.55)', radius: 10 },
+                    colors: { bg: 'rgba(0,0,0,0.45)', text: '#183b63' },
+                    text: { content: `${app.icon || '▥'} ${app.label || app.id}`, align: 'left', size: 13, font: 'Segoe UI' },
+                    classNames: 'ash-start-menu-item ash-start-menu-item-enter',
+                    css: {
+                        position: 'static',
+                        cursor: 'pointer',
+                        boxShadow: 'inset 0 1px 0 rgba(0,0,0,0.6)',
+                        transition: 'all 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
+                        paddingLeft: '10px',
+                        paddingRight: '10px',
+                        marginBottom: '6px',
+                        textAlign: 'left',
+                        animationDelay: `${0.08 + idx * 0.08}s`,
+                    }
+                });
+                const button = document.getElementById(buttonId);
+                if (button) {
+                    button.style.setProperty('--start-accent', this.shellTheme);
+                    button.addEventListener('click', () => {
+                        if (typeof app.onLaunch === 'function') app.onLaunch();
+                        this.hideStartMenu();
+                    });
+                    appSection.appendChild(button);
+                }
+            });
+
+            // Shortcuts section
+            const shortcutSection = document.createElement('div');
+            shortcutSection.className = 'ash-start-menu-section';
+            shortcutSection.style.display = 'flex';
+            shortcutSection.style.flexDirection = 'column';
+            shortcutSection.style.gap = '6px';
+            
+            const shortcutTitle = document.createElement('div');
+            shortcutTitle.className = 'ash-start-menu-section-title';
+            shortcutTitle.textContent = 'Shortcuts';
+            shortcutTitle.style.fontSize = '11px';
+            shortcutTitle.style.fontWeight = '700';
+            shortcutTitle.style.textTransform = 'uppercase';
+            shortcutTitle.style.letterSpacing = '0.08em';
+            shortcutTitle.style.color = '#486a8b';
+            shortcutTitle.style.padding = '2px 4px';
+            shortcutSection.appendChild(shortcutTitle);
+            contentDiv.appendChild(shortcutSection);
+
+            this.startShortcuts.forEach((shortcut, idx) => {
+                const buttonId = `ash-start-shortcut-${shortcut.id}`;
+                AEA({
+                    type: 'Button',
+                    id: buttonId,
+                    position: { x: 0, y: 0 },
+                    size: { width: 320, height: 32 },
+                    border: { width: 1, color: 'rgba(0,0,0,0.55)', radius: 10 },
+                    colors: { bg: 'rgba(0,0,0,0.45)', text: '#183b63' },
+                    text: { content: `${shortcut.icon || '▥'} ${shortcut.label || shortcut.id}`, align: 'left', size: 12, font: 'Segoe UI' },
+                    classNames: 'ash-start-menu-item compact ash-start-menu-item-enter',
+                    css: {
+                        position: 'static',
+                        cursor: 'pointer',
+                        boxShadow: 'inset 0 1px 0 rgba(0,0,0,0.6)',
+                        transition: 'all 0.2s cubic-bezier(0.22, 1, 0.36, 1)',
+                        paddingLeft: '10px',
+                        paddingRight: '10px',
+                        marginBottom: '6px',
+                        textAlign: 'left',
+                        animationDelay: `${0.16 + idx * 0.08}s`,
+                    }
+                });
+                const button = document.getElementById(buttonId);
+                if (button) {
+                    button.style.setProperty('--start-accent', this.shellTheme);
+                    button.addEventListener('click', () => {
+                        if (typeof shortcut.onLaunch === 'function') shortcut.onLaunch();
+                        this.hideStartMenu();
+                    });
+                    shortcutSection.appendChild(button);
+                }
+            });
+        },
+        toggleStartMenu() {
+            if (this.startMenuOpen) {
+                this.hideStartMenu();
+            } else {
+                this.showStartMenu();
+            }
+        },
+        showStartMenu() {
+            this.startMenuOpen = true;
+            if (this.startMenu) {
+                this.startMenu.style.opacity = '1';
+                this.startMenu.style.pointerEvents = 'auto';
+                this.startMenu.style.transform = 'perspective(1000px) scale(1) rotateY(0)';
+                this.startMenu.classList.add('ash-start-menu-open');
+            }
+            this.renderStartMenu();
+        },
+        hideStartMenu() {
+            this.startMenuOpen = false;
+            if (this.startMenu) {
+                this.startMenu.style.opacity = '0';
+                this.startMenu.style.pointerEvents = 'none';
+                this.startMenu.style.transform = 'perspective(1000px) scale(0.88) rotateY(-8deg)';
+                this.startMenu.classList.remove('ash-start-menu-open');
+            }
+        },
+    };
+
+    if (typeof window !== 'undefined') {
+        window.__ashWindowManager = manager;
+    }
+    return manager;
+}
+
 function createArkWindow(Name, Process, Info) {
     if (typeof Info !== 'object' || Info === null) {
         throw new Error("Info must be a valid object with window properties.");
@@ -2169,11 +2622,14 @@ function createArkWindow(Name, Process, Info) {
     const contentId = `${windowId}-content`;
     const closeId = `${windowId}-close`;
     const maxId = `${windowId}-max`;
+    const minId = `${windowId}-min`;
     const resizeId = `${windowId}-resize`;
     const overlayId = `${windowId}-overlay`;
 
     const minWidth = 200;
-    const minHeight = 240;    const titleHeight = 32;
+    const minHeight = 240;
+    const titleHeight = 32;
+    //const manager = createAshWindowManager();
     var state = {
         id: windowId,
         x: Info.x,
@@ -2183,14 +2639,21 @@ function createArkWindow(Name, Process, Info) {
         frameId: frameId,
         closeId: closeId,
         maxId: maxId,
+        minId: minId,
         overlayId: overlayId,
         width: Math.max(Info.width, minWidth),
         height: Math.max(Info.height, minHeight),
         title: Info.title,
         process: Process,
+        themeColor: Info.themeColor || Info.theme || '#5b9bd5',
         buttons: [],
         dragging: false,
         resizing: false,
+        minimized: false,
+        maximized: false,
+        restoreBounds: null,
+        minimizeRestoreBounds: null,
+        closed: false,
         dragStart: { x: 0, y: 0, windowX: 0, windowY: 0, windowW: 0, windowH: 0 },
     };
 
@@ -2273,8 +2736,8 @@ function createArkWindow(Name, Process, Info) {
         setProperty(resizeId, 'top', px(state.y + state.height - 28));
         setProperty(resizeId, 'width', px(24));
         setProperty(resizeId, 'height', px(24));
-/*
-        // overlay covers the whole window (including title) and stays readOnly
+
+  /*
         setProperty(overlayId, 'left', px(state.x));
         setProperty(overlayId, 'top', px(state.y));
         setProperty(overlayId, 'width', px(state.width));
@@ -2340,10 +2803,10 @@ function createArkWindow(Name, Process, Info) {
         id: frameId,
         position: { x: state.x, y: state.y },
         size: { width: state.width, height: state.height },
-        border: { width: 1, color: 'rgba(255,255,255,0.22)', radius: 12 },
+        border: { width: 1, color: 'rgba(0,0,0,0.4)', radius: 12 },
         colors: { bg: 'transparent', text: '#fff' },
         text: { content: '', align: 'left', size: 14, font: 'sans-serif' },
-        css: { position: 'absolute', overflow: 'hidden', background: 'transparent', boxShadow: '0 0 0 1px rgba(255,255,255,0.08) inset' },
+        css: { position: 'absolute', overflow: 'hidden', background: 'rgba(0,0,0,0.06)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', boxShadow: 'inset 0 1px 0 rgba(0,0,0,0.3), 0 10px 24px rgba(0, 0, 0, 0.2)', animation: 'ash-window-enter 0.32s cubic-bezier(0.22, 1, 0.36, 1) forwards' },
     });
 
     AEA({
@@ -2355,7 +2818,7 @@ function createArkWindow(Name, Process, Info) {
         colors: { bg: 'transparent', text: '#fff' },
         text: { content: state.title, align: 'left', size: Math.max(14, Math.round(state.width * 0.04)), font: 'Arial' },
         readOnly: true,
-        css: { position: 'absolute', padding: '10px', boxSizing: 'border-box', background: 'rgba(255,255,255,0.03)', borderRadius: '12px 12px 0 0', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' },
+        css: { position: 'absolute', padding: '10px', boxSizing: 'border-box', background: 'rgba(0,0,0,0.08)', borderRadius: '12px 12px 0 0', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' },
     });
 
     AEA({
@@ -2367,7 +2830,7 @@ function createArkWindow(Name, Process, Info) {
         colors: { bg: 'transparent', text: '#fff' },
         text: { content: '', align: 'left', size: Math.max(12, Math.round(state.width * 0.03)), font: 'Arial' },
         readOnly: true,
-        css: { position: 'absolute', padding: '12px', boxSizing: 'border-box', overflow: 'auto', background: 'transparent', borderRadius: '0 0 12px 12px' },
+        css: { position: 'absolute', padding: '12px', boxSizing: 'border-box', overflow: 'auto', background: 'rgba(0,0,0,0.05)', borderRadius: '0 0 12px 12px', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' },
     });
 
     // transparent overlay that covers the full window with white text
@@ -2392,7 +2855,7 @@ function createArkWindow(Name, Process, Info) {
         colors: { bg: '#c0392b', text: '#fff' },
         text: { content: 'X', align: 'center', size: Math.max(16, Math.round(state.width * 0.035)), font: 'Arial' },
         readOnly: true,
-        css: { position: 'absolute', cursor: 'pointer', borderRadius: '0 12px 0 0'},
+        css: { position: 'absolute', cursor: 'pointer', borderRadius: '0 12px 0 0' },
     });
 
     AEA({
@@ -2499,10 +2962,22 @@ function createArkWindow(Name, Process, Info) {
 
     if (closeElement) {
         closeElement.addEventListener('click', () => {
-            [frameId, titleId, contentId, closeId, maxId, resizeId].forEach(id => {
-                const element = document.getElementById(id);
-                if (element) element.remove();
-            });
+            const frameEl = document.getElementById(frameId);
+            if (frameEl) {
+                frameEl.classList.add('ash-window-exit');
+                window.setTimeout(() => {
+                    state.closed = true;
+                    ////////////////////////////////////manager.unregister(state);
+                    [frameId, titleId, contentId, closeId, maxId, minId, resizeId, overlayId].forEach(id => {
+                        const element = document.getElementById(id);
+                        if (element) element.remove();
+                    });
+                    state.buttons.forEach((button) => {
+                        const element = document.getElementById(button.id);
+                        if (element) element.remove();
+                    });
+                }, 180);
+            }
         });
     }
 
@@ -2518,6 +2993,53 @@ function createArkWindow(Name, Process, Info) {
             layoutWindow();
         });
     }
+
+    if (document.getElementById(minId)) {
+        const minElement = document.getElementById(minId);
+        minElement.addEventListener('click', () => {
+            if (state.minimized) {
+                state.restoreWindow();
+            } else {
+                state.minimizeWindow();
+            }
+        });
+    }
+
+    state.restoreWindow = function() {
+        if (!state.minimized) return;
+        const restoreBounds = state.minimizeRestoreBounds || { x: state.x, y: state.y, width: state.width, height: state.height };
+        state.minimized = false;
+        state.x = restoreBounds.x;
+        state.y = restoreBounds.y;
+        state.width = restoreBounds.width;
+        state.height = restoreBounds.height;
+        [frameId, titleId, contentId, closeId, maxId, minId, resizeId].forEach((id) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.style.display = element.tagName === 'TEXTAREA' ? 'flex' : (element.tagName === 'BUTTON' ? 'inline-block' : 'block');
+                element.classList.remove('ash-window-minimized');
+                element.classList.add('ash-window-enter');
+            }
+        });
+        layoutWindow();
+        //////////////////////////////////manager.refreshTaskbar();
+    };
+
+    state.minimizeWindow = function() {
+        if (state.minimized) return;
+        state.minimizeRestoreBounds = { x: state.x, y: state.y, width: state.width, height: state.height };
+        state.minimized = true;
+        [frameId, titleId, contentId, closeId, maxId, minId, resizeId].forEach((id) => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.classList.add('ash-window-minimized');
+            }
+        });
+        //////////////////////////////////manager.refreshTaskbar();
+    };
+
+    //////////////////////////////////manager.register(state);
+
 
     layoutWindow();
     state.contentId = contentId;
@@ -2536,11 +3058,22 @@ if (contentElement) {
     contentElement.removeAttribute("readonly")
     contentElement.readOnly = false;  // or false
     contentElement.value = "Hello, World!";  // or false
+}
+}   
+function notepad2() {
+    StartProcess("Notepad2");
+const myWindow = createArkWindow("Notepad2", "Notepad2", { width: 250, height: 250, x: 50, y: 50, title: "My Window" });
+const contentElement = document.getElementById(myWindow.contentId);
+if (contentElement) {
+    contentElement.removeAttribute("readonly")
+    contentElement.readOnly = false;  // or false
+    contentElement.value = "Hello, World!";
 }   
 
 }
 
 notepad();
+notepad2();
 
 /* === src: src\Deprecated\!ScreenReader.js === */
 /*(function() {
